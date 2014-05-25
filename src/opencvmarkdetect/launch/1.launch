@@ -1,6 +1,0 @@
-<launch>
-	<machine name="my" address="localhost" env-loader="/opt/ros/hydro/env.sh"/>
-	<node name="Rvizsender" pkg="opencvmarkdetect" type="Rvizlistener" />
-	<node name="detector" pkg="opencvmarkdetect" type="opencvmarkdetect" />
-	<node name="Rviz" pkg="rviz" type="rviz" />
-</launch>

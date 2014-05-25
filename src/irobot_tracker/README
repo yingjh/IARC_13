@@ -1,3 +1,0 @@
-dependency:
-aruco & eigen3
-put Findaruco.cmake and Findeigen.cmake into /usr/local/lib/cmake
