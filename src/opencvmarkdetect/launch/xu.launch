@@ -1,0 +1,5 @@
+<launch>
+	<node name="Rvizsender" pkg="opencvmarkdetect" type="Rvizlistener" />
+	<node name="detector" pkg="opencvmarkdetect" type="opencvmarkdetect" />
+	<node name="Rviz" pkg="rviz" type="rviz" />
+</launch>
