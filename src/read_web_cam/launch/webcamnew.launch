@@ -1,0 +1,61 @@
+<launch>
+	<param name="is_debug_on" value="false" />
+
+	<node name="WebCam" pkg="read_web_cam" type="read_web_cam"/>
+
+	<node name="webcam_tracker" pkg="irobot_tracker" type="webcam_tracker"/>
+
+    <!-- KF parameters -->
+	<param name="UKF_posStd_r" value="5" /> <!-- processs errorCov -->
+	<param name="UKF_ortStd_r" value="5" /> <!-- processs errorCov -->
+	<param name="UKF_imuStd_r" value="1" /> <!-- processs errorCov -->
+
+	<param name="UKF_posStd_q" value="1.0" />
+	<param name="UKF_ortStd_q" value="0.8" />
+	<param name="UKF_imuStd_q" value="10" />
+
+	<!-- PID parameters -->
+	<param name="Kp_pos" value="1.35" />
+	<param name="Ki_pos" value="0.00" />
+	<param name="Kd_pos" value="0.28" />
+
+	<param name="Kp_vel" value="1.80" />
+	<param name="Ki_vel" value="0.00" />
+	<param name="Kd_vel" value="0.28" />
+
+	<param name="Kp_acc" value="0.41" />
+	<param name="Ki_acc" value="0.0" />
+	<param name="Kd_acc" value="0.0" />
+    <!--
+	<param name="Ki_acc" value="0.15" />
+	<param name="Kd_acc" value="0.08" />
+    -->
+
+	<param name="dFilter_gain" value="0.5" />
+	<param name="feedforward_gain" value="0.00074799" />  <!-- 7m/s ==> 30degree -->
+
+    <!-- best parameters got at 1:25am 04-11-2014
+        <param name="Kp_pos" value="0.50" />
+        <param name="Ki_pos" value="0.00" />
+        <param name="Kd_pos" value="0.22" />
+
+        <param name="Kp_vel" value="1.50" />
+        <param name="Ki_vel" value="0.00" />
+        <param name="Kd_vel" value="0.12" />
+
+        <param name="Kp_acc" value="0.10" />
+        <param name="Ki_acc" value="0.10" />
+        <param name="Kd_acc" value="0.03" />
+    -->
+
+	<param name="pid_gain" value="1.0" />
+	<param name="controlLimit" value="8.0" />
+
+	<node name="SRUKF_controller" pkg="irobot_tracker" type="SRUKF_controller" output="screen"/>
+
+	<node name="serial_to_uav_node" pkg="serial_to_uav" type="serial_to_uav_node"/>
+	<param name="is_write_on" value="true" />
+    <!--
+    -->
+	
+</launch>
