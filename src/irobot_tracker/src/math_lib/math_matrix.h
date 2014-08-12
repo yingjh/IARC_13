@@ -38,7 +38,12 @@ void matrix3f_copy(matrix3f dest, matrix3f src);
 
 void matrix3f_add(matrix3f m_out, matrix3f a_in,matrix3f b_in);
 void matrix3f_sub(matrix3f m_out, matrix3f a_in,matrix3f b_in);
+
+void matrix3f_add3(matrix3f m_out, matrix3f a_in, matrix3f b_in, matrix3f c_in);
+
 void matrix3f_scale(matrix3f m, float scale);
+void matrix3f_multi_scaler(matrix3f m_out, matrix3f m_in, float scaler);
+
 void get_matrix3f_transpose(matrix3f dest, matrix3f src);
 void take_matrix3f_transpose(matrix3f m);
 float matrix3f_det(matrix3f m);

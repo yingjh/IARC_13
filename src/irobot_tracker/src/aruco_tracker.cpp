@@ -14,6 +14,16 @@
 #include "irobot_tracker/uav_math.h"
 #include "geometry_msgs/Vector3.h"
 #include <opencv2/opencv.hpp>
+
+
+
+//YU YUN
+#include "math_basic.h"
+#include "math_vector.h"
+#include "math_matrix.h"
+#include "math_quaternion.h"
+#include "math_rotation.h"
+
 using namespace cv;
 using namespace aruco;
 
@@ -146,7 +156,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
     cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
     InImage = cv_ptr->image;
-	resize(InImage,InImage,Size(320,240));
     Mat outImage;
     cvtColor(InImage, outImage, CV_GRAY2RGB);
     MDetector.detect(InImage,Markers, camParam, markerSize, false);
@@ -181,7 +190,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
         posX = posY = posZ = 0;
         ortX = ortY = ortZ = 0;
         rvecX = rvecY = rvecY = 0;
-
+        if (markerSize > 10)
+        {
             Rodrigues(Markers[0].Rvec, Rmtx);
             pos_tmp = -Rmtx.t()*Markers[0].Tvec;
             posX = pos_tmp.at<float>(0,0);
@@ -196,8 +206,64 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
             Q[1] = rvecX/theta*sin(theta/2);
             Q[2] = rvecY/theta*sin(theta/2);
             Q[3] = rvecZ/theta*sin(theta/2);
+        }
+        else
+        {
+            for (unsigned int i=0;i<Markers.size();i++) 
+            {
+                tmpMarkerPos = getMarkerPos(Markers[i].id);
+                tmp1 = tmpMarkerPos.x;
+                tmp2 = tmpMarkerPos.y;
+                tmp3 = tmpMarkerPos.z;
+                Rodrigues(Markers[i].Rvec, Rmtx);
+                pos_tmp.create(3,1, CV_32FC1);
+                pos_tmp.at<float>(0,0) = Rmtx.at<float>(0,0)*tmp1 + Rmtx.at<float>(0,1)*tmp2 + Rmtx.at<float>(0,2)*tmp3 + Markers[i].Tvec.at<float>(0,0);
+                pos_tmp.at<float>(1,0) = Rmtx.at<float>(1,0)*tmp1 + Rmtx.at<float>(1,1)*tmp2 + Rmtx.at<float>(1,2)*tmp3 + Markers[i].Tvec.at<float>(1,0);
+                pos_tmp.at<float>(2,0) = Rmtx.at<float>(2,0)*tmp1 + Rmtx.at<float>(2,1)*tmp2 + Rmtx.at<float>(2,2)*tmp3 + Markers[i].Tvec.at<float>(2,0);
+                pos_tmp = -Rmtx.t()*pos_tmp;
+                posX += pos_tmp.at<float>(0,0);
+                posY += pos_tmp.at<float>(1,0);
+                posZ += pos_tmp.at<float>(2,0);
 
+                //from axis angle to Q
+                rvecX = Markers[i].Rvec.at<float>(0,0);
+                rvecY = Markers[i].Rvec.at<float>(1,0);
+                rvecZ = Markers[i].Rvec.at<float>(2,0);
+                float theta = sqrt(rvecX*rvecX+rvecY*rvecY+rvecZ*rvecZ);
+                Q[0] = cos(theta/2);
+                Q[1] = rvecX/theta*sin(theta/2);
+                Q[2] = rvecY/theta*sin(theta/2);
+                Q[3] = rvecZ/theta*sin(theta/2);
+                //Rotation_Mtx_to_Quaternion(Rmtx, Q);
+                //Mat tmp = (Mat_<float>(3,1) << 0,0,1);
+                //cout << Rmtx*tmp <<endl;
+                Quaternoin_to_Eular_RAD(Q, &tmpf1, &tmpf2, &tmpf3);
+                ortX += tmpf1;
+                ortY += tmpf2;
+                ortZ += tmpf3;
+            }
+            // center of the board in tracker frame
+            posX /= numOfMarkersDetected;
+            posY /= numOfMarkersDetected;
+            posZ /= numOfMarkersDetected;
+            // this position is in camera frame
+            ortX /= numOfMarkersDetected;
+            ortY /= numOfMarkersDetected;
+            ortZ /= numOfMarkersDetected;
+            Eular_to_Quaternion(Q, ortX, ortY, ortZ);
 
+            /*
+            Qstar[0] = Q[0]; Qstar[1] = -Q[1]; Qstar[2] = -Q[2]; Qstar[3] = -Q[3];
+            qVec[0] = 0; qVec[1] = posX; qVec[2] = posY; qVec[2] = posZ; 
+            QuaternionA_Multi_B(Qstar, qVec, tmpQ);	//C=A*B
+            QuaternionA_Multi_B(tmpQ, Q, qVec);	//C=A*B
+            posX = qVec[1];
+            posY = qVec[2];
+            posZ = qVec[3];
+            */
+            //printf("Board position is (X: %f\tY: %f\tZ: %f), orientation is (%f\t%f\t%f\t%f)\n", posX, posY, posZ, Q[0], Q[1], Q[2], Q[3]);
+            //Eular_to_Quaternion(Q, ortX, ortY, ortZ);
+        }
         outMsg.pose.orientation.w = Q[0];
         outMsg.pose.orientation.x = Q[1];
         outMsg.pose.orientation.y = Q[2];
@@ -209,25 +275,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
         outMsg.header.frame_id = "world";
         outMsg.isTracking = 1;
         pub.publish(outMsg);
-
-		cout<<"R_ct1\n"<<Rmtx.at<float>(0,0)<<","
-				<<Rmtx.at<float>(0,1)<<","
-				<<Rmtx.at<float>(0,2)<<"\n"
-				<<Rmtx.at<float>(1,0)<<","
-				<<Rmtx.at<float>(1,1)<<","
-				<<Rmtx.at<float>(1,2)<<"\n"
-				<<Rmtx.at<float>(2,0)<<","
-				<<Rmtx.at<float>(2,1)<<","
-				<<Rmtx.at<float>(2,2)<<"\n";
-
-	cout<<"T_tc: "<<outMsg.pose.position.x<<","<<outMsg.pose.position.y<<","<<outMsg.pose.position.z<<endl;
-	cout<<"T_ct: "<<Markers[0].Tvec.at<float>(0,0)<<","<<Markers[0].Tvec.at<float>(1,0)<<","<<Markers[0].Tvec.at<float>(2,0)<<endl;
-	cout<<"rvecX "<<rvecX<<"rvecY "<<rvecY<<"rvecz "<<rvecZ<<endl;
-	cout<<"Q: "<<Q[0]<<","<<Q[1]<<","<<Q[2]<<","<<Q[3]<<endl;
-	
-
-
-
 
         tran.setOrigin( tf::Vector3(outMsg.pose.position.x, outMsg.pose.position.y, outMsg.pose.position.z) );
         tran.setRotation( tf::Quaternion(outMsg.pose.orientation.x, 
@@ -248,13 +295,13 @@ int main(int argc,char **argv)
     // read camera parameters
     string cameraParamPath;
     //string defaultCameraParamPath = "/mnt/iarc/data/camera_params/asi_320_240_param_aruco.xml";
-    string defaultCameraParamPath = "/mnt/iarc/data/camera_params/my.xml";
+    string defaultCameraParamPath = "/mnt/iarc/data/camera_params/asi_fish_eye_param.xml";
     //string boardConfigurePath;
     //string defaultboardConfigurePath = "/mnt/iarc/data/boardConfiguration.yml";
     nh.param("cameraParamPath", cameraParamPath, defaultCameraParamPath);
     //nh.param("boardConfigurePath", boardConfigurePath, defaultboardConfigurePath);
-    nh.param("markerSize", markerSize, double(18.39));
-    nh.param("is_debug_on", is_debug_on, true);
+    nh.param("markerSize", markerSize, double(3.9));
+    nh.param("is_debug_on", is_debug_on, false);
     camParam.readFromXMLFile(cameraParamPath);
 
     if (markerSize < 4)

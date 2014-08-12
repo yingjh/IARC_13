@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS nav_msgs tf roscpp rospy std_msgs geomet
 
 ## code to find serial communication library
 FIND_PATH(SERIAL_INCLUDE_DIR SerialStream.h
-   /usr/include 
+   /usr/include
    /usr/local/include
 )
 
@@ -103,12 +103,11 @@ include_directories(
 
 ## Declare a cpp executable
 ## find Yu Yun math library
-file(GLOB UAV_MATH_LIB_SOURCES /mnt/iarc/catkin_ws/src/irobot_tracker/src/math_lib/*.c)
-include_directories("/mnt/iarc/catkin_ws/src/irobot_tracker/src/math_lib")
+file(GLOB UAV_MATH_LIB_SOURCES /mnt/iarc/UAV_ROS_pkgs/src/irobot_tracker/src/math_lib/*.c)
+include_directories("/mnt/iarc/UAV_ROS_pkgs/src/irobot_tracker/src/math_lib")
 SET_SOURCE_FILES_PROPERTIES(${UAV_MATH_LIB_SOURCES} PROPERTIES LANGUAGE CXX)
 
 #add_executable(serial_to_uav_node src/serial_talker.cpp ${UAV_MATH_LIB_SOURCES})
-
 add_executable(serial_to_uav_node src/serial_FSM.cpp ${UAV_MATH_LIB_SOURCES})
 
 ## Add cmake target dependencies of the executable/library

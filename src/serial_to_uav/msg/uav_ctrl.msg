@@ -3,3 +3,4 @@ int16 yaw_rate
 int16 pitch
 int16 roll
 int16 vel
+int16 desired_status

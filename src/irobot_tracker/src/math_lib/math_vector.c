@@ -215,6 +215,23 @@ void vector3f_add(vector3f v_out, vector3f a_in,vector3f b_in)
   * @retval			None 
   * @remark			benchmarked by: Yu Yun
   */
+void vector3f_add3(vector3f v_out, vector3f a_in, vector3f b_in, vector3f c_in)
+{
+	v_out[0] = a_in[0] + b_in[0] + c_in[0];
+	v_out[1] = a_in[1] + b_in[1] + c_in[1];
+	v_out[2] = a_in[2] + b_in[2] + c_in[2];
+}
+
+
+/**
+  * @brief			vector addition
+  * @author			Yu Yun
+  * @param[out]		v_out: output vector
+  * @param[in]		a_in: input vector a
+  * @param[in]		b_in: input vector b
+  * @retval			None 
+  * @remark			benchmarked by: Yu Yun
+  */
 void vector4f_add(vector4f v_out, vector4f a_in,vector4f b_in)
 {
 	v_out[0] = a_in[0] + b_in[0];
@@ -322,6 +339,56 @@ void vector4f_scale(vector4f v, float scale)
 	v[3] *= scale;
 }
 
+
+/**
+  * @brief			multiply a vector with a scaler
+  * @author			Yu Yun
+  * @param[out]		v_out: input&output vector
+  * @param[in]		v_in:  input scale
+  * @param[in]		scaler: input scaler
+  * @retval			None 
+  * @remark			benchmarked by: Yu Yun
+  */
+void vector2f_multi_scaler(vector2f v_out, vector2f v_in, float scaler)
+{
+	v_out[0] = v_in[0] * scaler;
+	v_out[1] = v_in[1] * scaler;
+}
+
+
+/**
+  * @brief			multiply a vector with a scaler
+  * @author			Yu Yun
+  * @param[out]		v_out: input&output vector
+  * @param[in]		v_in:  input scale
+  * @param[in]		scaler: input scaler
+  * @retval			None 
+  * @remark			benchmarked by: Yu Yun
+  */
+void vector3f_multi_scaler(vector3f v_out, const vector3f v_in, const float scaler)
+{
+	v_out[0] = v_in[0] * scaler;
+	v_out[1] = v_in[1] * scaler;
+	v_out[2] = v_in[2] * scaler;
+}
+
+
+/**
+  * @brief			multiply a vector with a scaler
+  * @author			Yu Yun
+  * @param[out]		v_out: input&output vector
+  * @param[in]		v_in:  input scale
+  * @param[in]		scaler: input scaler
+  * @retval			None 
+  * @remark			benchmarked by: Yu Yun
+  */
+void vector4f_multi_scaler(vector4f v_out, vector4f v_in, float scaler)
+{
+	v_out[0] = v_in[0] * scaler;
+	v_out[1] = v_in[1] * scaler;
+	v_out[2] = v_in[2] * scaler;
+	v_out[3] = v_in[3] * scaler;
+}
 
 /**
   * @brief			get the norm of a vector

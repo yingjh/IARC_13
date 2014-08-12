@@ -76,6 +76,10 @@ SRUKF::SRUKF(int _n, int _m,
 	for (int i = 7; i < 13; i++)
     	Q(i,i) = imuStd_Q;
 
+	// give additional noise on z direction
+	R(2,2) = posStd_R;
+	Q(2,2) = posStd_Q;
+
     state_pre.resize(n);
     state_post.resize(n);
 

@@ -132,7 +132,8 @@ include_directories(
 
 ## Declare a cpp executable
 add_executable(read_web_cam src/publish.cpp)
-#add_executable(ASIRead src/ASIRead.cpp)
+add_executable(ASIRead src/ASIRead.cpp)
+add_executable(ASIReadcolor src/ASIReadcolor.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -144,13 +145,20 @@ target_link_libraries(read_web_cam
     ${OpenCV_LIBS}
 )
 
-#target_link_libraries( ASIRead
-#    ${catkin_LIBRARIES}
-#    ${ASI_LIBRARIES}
-#    ${LIBUSB_1_LIBRARIES}
-#    ${OpenCV_LIBS}
-#    rt
-#)
+target_link_libraries( ASIRead
+    ${catkin_LIBRARIES}
+    ${ASI_LIBRARIES}
+    ${LIBUSB_1_LIBRARIES}
+    ${OpenCV_LIBS}
+    rt
+)
+target_link_libraries( ASIReadcolor
+    ${catkin_LIBRARIES}
+    ${ASI_LIBRARIES}
+    ${LIBUSB_1_LIBRARIES}
+    ${OpenCV_LIBS}
+    rt
+)
 
 #############
 ## Install ##

@@ -41,6 +41,7 @@ void quat_multi(vector4f q_out, const vector4f a, const vector4f b);
 void unit_quat_multi(vector4f q_out, const vector4f a, const vector4f b);
 void get_error_quat(vector4f q_err, const vector4f q_cur, const vector4f q_tgt);
 
+void quat_rot_vector(vector3f v_out, const vector3f v_in, const vector4f q);
 
 
 #endif /*__MATH_QUATERNION_H */

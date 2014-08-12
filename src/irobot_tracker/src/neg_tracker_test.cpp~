@@ -1,0 +1,162 @@
+/************************************************************************
+* Copyright(c) 2014  YING Jiahang
+* All rights reserved.
+*
+* File:	NEGtracker.cpp
+* Brief: NEGtracker
+* Version: 1.0
+* Author: YING Jiahang
+* Email: yingjiahang@gmail.com
+* Date:	2014/7/03 14:00
+* History: 
+************************************************************************/
+
+
+//ros 
+#include <ros/ros.h>
+
+//opencv lib
+#include <opencv2/opencv.hpp>
+
+//YU YUN
+#include "math_basic.h"
+#include "math_vector.h"
+#include "math_matrix.h"
+#include "math_quaternion.h"
+#include "math_rotation.h"
+
+//eigen lib
+#include <eigen3/Eigen/Dense>
+
+//msg
+#include "serial_to_uav/UAV.h"
+#include "irobot_tracker/trackInfo.h"
+
+using namespace std;
+using namespace cv;
+using namespace Eigen;
+
+
+//K matrix
+Mat K = (Mat_< float >(3,3)<<
+            622.6379/2,0,320/2,
+            0,622.6379/2,240/2,
+            0,0,1);
+// Z_et is height
+Mat T_et;
+
+VectorXf imu_data;
+
+float heighttest = 100;
+
+int imu_callback_counter_ = 0;
+int uv_callback_counter_ = 0;
+
+
+void getXYZ(VectorXf& XYZ, const VectorXf& meas_vo, const VectorXf& meas_imu, const float heigt);
+void uvCallback(  );
+void imuCallback(const serial_to_uav::UAV& imu)
+
+
+int main (int argc, char** argv)
+{
+	// ros init and parameters retrieve
+	ros::init(argc, argv, "NEGtracker_node");
+
+	std::cout<< "NEGtracker node start!" <<endl;
+
+	ros::NodeHandle nh;
+
+	ros::Subscriber uvSub, imuSub;
+
+	uvSub  = nh.subscribe("uv", 10, uvCallback);
+	imuSub = nh.subscribe("uav_imu", 10, imuCallback);
+
+	ros::spin();
+}
+
+
+
+void uvCallback(const data uv_data)
+{
+	cout<< "uvCallback \n"; 
+	//uv in image
+	Mat uv = (Mat_< float >(3,1)<<
+				0.0f,
+				0.0f,
+				1.0f);
+	uv.at<float>(0,0) = uv_data.x;
+	uv.at<float>(1,0) = uv_data.y;
+	if(imu_callback_counter_ > 0)
+	{
+		//imu
+		Vector4f q_eb;
+		q_eb(0) = imu_data(0);
+		q_eb(1) = imu_data(1);
+		q_eb(2) = imu_data(2);
+		q_eb(3) = imu_data(3);
+
+		getXYZ(T_et, uv, q_eb, heighttest);
+
+		cout<< "T_et"<< T_et << endl;
+	}
+	uv_callback_counter_++;
+}
+
+
+
+void imuCallback(const serial_to_uav::UAV& imu)
+{
+
+	cout<< "imuCallback \n"; 
+	// receive data 
+	
+	imu_data.resize(10);
+	// q_eb
+	imu_data(0) = imu -> orientation.w; 
+	imu_data(1) = imu -> orientation.x;
+	imu_data(2) = imu -> orientation.y;
+	imu_data(3) = imu -> orientation.z;
+
+	// a_eb or a_ec  where we set the unit of a to cm/s^2
+	imu_data(4) = imu -> linear_a.x ;   
+	imu_data(5) = imu -> linear_a.y ;  
+	imu_data(6) = imu -> linear_a.z ;  
+
+	// w_bb or w_bc
+	imu_data(7) = imu -> angular_v.x/180.0f*M_PI; 
+	imu_data(8) = imu -> angular_v.y/180.0f*M_PI; 
+	imu_data(9) = imu -> angular_v.z/180.0f*M_PI; 
+
+	imu_callback_counter_++;
+}
+
+void getXYZ(Mat& XYZ, const Mat& uv, const Vector4f& meas_imu, const float heigt)
+{
+	vector4f q_eb;
+
+	matrix3f R_cb, R_eb, R_be, R_cetmp;
+	matrix3f_set_value(R_cb, 
+						 0,  1, 0,
+						-1,  0, 0,
+						 0,  0, 1);
+
+	q_eb[0] = meas_imu(0);
+	q_eb[1] = meas_imu(1);
+	q_eb[2] = meas_imu(2);
+	q_eb[3] = meas_imu(3);
+
+	quat_to_DCM(R_eb, q_eb);
+	get_matrix3f_transpose(R_be, R_eb);
+
+	matrix3f_multi_matrix3f(R_cetmp, R_cb, R_be);
+
+	//R_cNEG
+	Mat R_ce = (Mat_< float >(3,3)<<
+				R_cetmp[0][0],R_cetmp[0][1],R_cetmp[0][2],
+				R_cetmp[1][0],R_cetmp[1][1],R_cetmp[1][2],
+				R_cetmp[2][0],R_cetmp[2][1],R_cetmp[2][2]);
+
+	XYZ = (K * R_ce).inv() * uv;
+	XYZ *= (heigt / XYZ.at<float>(2,0)); 
+}

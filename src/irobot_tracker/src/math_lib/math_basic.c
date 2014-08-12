@@ -20,6 +20,9 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/ 
+
+#define HIGH_PRECISION
+
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -342,16 +345,20 @@ double double_cube_root(double x)
 
 
 /**
-  * @brief		calculate the inverse square root of a given number, float only
+  * @brief		fast calculate inverse square root of a given number
   * @author     Yu Yun
   * @param[in]	x: input value
+  *				 This parameter can be one of the following values:
+  *                @arg 1.0e-14: -> 9.985661e+06
+  *                @arg 0.0e+00: -> 1.981803e+19 (near infinite)
+  *                @arg 1.0e+14: -> 9.989504e-08
   * @retval		x: inverse square root of the input 
   * @remark		benchmarked by: Yu Yun
-  *				4 time faster than standard lib
-  *				0.2% relative error
+  *				4 times faster than standard lib
+  *				less than 0.2% relative error
   *				the code is resilient to zero input
   */
-float float_inv_sqrt(float x)
+__INLINE float fast_inv_sqrt(float x)
 {
    float xhalf = 0.5f*x;
    int i = *(int*)&x; 			// get bits for floating VALUE 
@@ -363,29 +370,83 @@ float float_inv_sqrt(float x)
 
 
 /**
-  * @brief		calculate the inverse square root of a given number, double only
+  * @brief		calculate the inverse square root of a given number, float only
+  * @details    return high precision result, but take more time
+  *				or return relatively high precision result, faster
   * @author     Yu Yun
-  * @param[in]	x: input value
+  * @param[in]	x:		  input value
   * @retval		inv_sqrt: inverse square root of the input 
   * @remark		benchmarked by: Yu Yun
   *				the code is resilient to zero input
   */
+#ifdef HIGH_PRECISION
+
+float float_inv_sqrt(float x)
+{
+  float inv_sqrt;
+
+	if(x == 0.0)
+	{
+		inv_sqrt = fast_inv_sqrt((float)x);
+	}
+	else
+	{
+		inv_sqrt = (float)(1.0/sqrt(x));
+	}
+
+   return inv_sqrt;
+}
+
+#else
+
+float float_inv_sqrt(float x)
+{
+	float inv_sqrt = fast_inv_sqrt(x);
+
+	return inv_sqrt;
+}
+
+#endif
+
+
+/**
+  * @brief		calculate the inverse square root of a given number, double only
+  * @details    return high precision result, but take more time
+  *				or return relatively high precision result, faster
+  * @author     Yu Yun
+  * @param[in]	x:	      input value
+  * @retval		inv_sqrt: inverse square root of the input 
+  * @remark		benchmarked by: Yu Yun
+  *				the code is resilient to zero input
+  */
+#ifdef HIGH_PRECISION
+
 double double_inv_sqrt(double x)
 {
 	double inv_sqrt;
 
-	if(x = 0.0)
+	if(x == 0.0)
 	{
-		inv_sqrt = (double)float_inv_sqrt((float)x);
+		inv_sqrt = (double)fast_inv_sqrt((float)x);
 	}
 	else
 	{
 		inv_sqrt = 1.0/sqrt(x);
 	}
-   
+
    return inv_sqrt;
 }
 
+#else
+
+double double_inv_sqrt(double x)
+{
+	double inv_sqrt = (double)fast_inv_sqrt((float)x);
+
+	return inv_sqrt;
+}
+
+#endif
 
 
 

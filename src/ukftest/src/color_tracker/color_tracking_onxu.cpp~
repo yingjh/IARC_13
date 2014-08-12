@@ -1,0 +1,126 @@
+/*
+*    H 0-9 S 40-255 V  49-252
+*
+*/
+// opencv lib
+#include <opencv2/opencv.hpp>
+// ros 
+#include <ros/ros.h>
+
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+
+
+using namespace std;
+using namespace cv;
+
+void imageCallback(const sensor_msgs::ImageConstPtr& msg);
+Rect colorDetector(Mat img, Mat &dst);
+
+// color detector
+vector< vector<Point> > contours;	
+vector< vector<Point> > filterContours;	
+vector< Vec4i > hierarchy;	
+vector< Point > hull;
+// bar window
+int H_min = 0,
+	H_max = 3,
+	S_min = 110,
+	S_max = 180,
+	V_min = 51,
+	V_max = 113;
+
+
+int main(int argc,char **argv)
+{
+
+	namedWindow( "Bar", 1 );
+	createTrackbar( "H_min", "Bar", &H_min, 255 );
+	createTrackbar( "H_max", "Bar", &H_max, 255 );
+	createTrackbar( "S_min", "Bar", &S_min, 255 );
+	createTrackbar( "S_max", "Bar", &S_max, 255 );
+	createTrackbar( "V_min", "Bar", &V_min, 255 );
+	createTrackbar( "V_max", "Bar", &V_max, 255 );
+
+	// ros
+	ros::init(argc, argv, "color_test_node");
+	ros::NodeHandle nh;
+
+	image_transport::ImageTransport it(nh);
+	image_transport::Subscriber imgSub;
+
+	imgSub = it.subscribe("/uav_cam/image", 1, imageCallback);
+	ros::spin();
+	return 0;
+}
+
+void imageCallback(const sensor_msgs::ImageConstPtr& msg)
+{
+	Mat frame;
+	cv_bridge::CvImagePtr cv_ptr;
+	cv_ptr = cv_bridge::toCvCopy(msg,sensor_msgs::image_encodings::BGR8);
+	frame = cv_ptr->image;
+	
+	imshow("debug",frame);
+	///////////////////////////////////////////////
+	Mat dstimage;
+	Rect boundBox;
+	boundBox = colorDetector( frame,dstimage);
+	imshow("dst",dstimage);
+	////////////////////////////////////////////////
+	waitKey(1);
+}
+
+Rect colorDetector(Mat img, Mat &dst)
+{
+	Mat mask(img.rows, img.cols, CV_8UC1);
+	Mat frameHSV;
+	GaussianBlur( img, frameHSV, Size(9, 9), 3, 3 );
+
+	cvtColor( frameHSV, frameHSV, CV_BGR2HSV );
+	//inRange(frameHSV, Scalar(0,40,49),Scalar(11,255,255), mask);
+	inRange(frameHSV, Scalar(MIN(H_min,H_max),MIN(S_min,S_max),MIN(V_min,V_max)),
+			Scalar(MAX(H_min,H_max),MAX(S_min,S_max),MAX(V_min,V_max)), mask);
+
+	Mat element = getStructuringElement(MORPH_RECT, Size(3,3));
+	erode(mask, mask, element);
+	morphologyEx(mask, mask, MORPH_OPEN, element);
+	dilate(mask, mask, element);
+	morphologyEx(mask, mask, MORPH_CLOSE, element);
+	img.copyTo(dst);
+
+	imshow("Bar",mask);
+
+
+	contours.clear();
+	filterContours.clear();
+	hierarchy.clear();
+	hull.clear();
+
+
+	//findContours( mask, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+	findContours(mask, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+	for (int i = 0; i < contours.size(); i++)
+	{
+		if (fabs(contourArea(Mat(contours[i]))) > 200)
+		{
+			filterContours.push_back(contours[i]);
+		}
+	}
+	for (int j=0; j<filterContours.size(); j++)
+	{
+		convexHull(Mat(filterContours[j]), hull, true);
+		int hullcount = (int)hull.size();
+
+		for (int i=0; i<hullcount-1; i++)
+		{
+			line(dst, hull[i+1], hull[i], Scalar(255,0,0), 2, CV_AA);
+		}
+		line(dst, hull[hullcount-1], hull[0], Scalar(255,0,0), 2, CV_AA);
+	}
+	
+	return boundingRect(hull);
+	
+}

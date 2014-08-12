@@ -4,12 +4,18 @@ IrobotDetector::IrobotDetector()
 {
 	tempFlag=true;
 	// 摄像头标定数据
+	/*
 	camMatrix=(Mat_<float>(3,3)<<
-		779.2414/2,0,319.5/2,
-		0,779.2414/2,239.5/2,
+		393.2714/2.0,0,319.5/2.0,
+		0,393.2714/2.0,239.5/2.0,
 		0,0,1);
-	distCoeff = (Mat_<float>(5,1) << 0.26,-2.24,0,0,6.10);
-
+	distCoeff = (Mat_<float>(5,1) << -0.29475,-0.1154,0.0,0.0,-0.025328);
+	*/	
+	camMatrix=(Mat_<float>(3,3)<<
+		180.2346315,0,159.5,
+		0,180.2346315,119.5,
+		0,0,1);
+	distCoeff = (Mat_<float>(5,1) << -0.276089956,0.1087447314,0.0,0.0,-0.024036442);
 	m_markerSize = Size(200, 100);
 	// 默认marker的size为200*100,markercorner在2d空间为200*100的矩形
 	marker2dPt.push_back(Point2f(0, 0));
@@ -19,10 +25,24 @@ IrobotDetector::IrobotDetector()
 
 	// 3d corner所在坐标为以marker中心为原点
 	
-	marker3dPt.push_back(cv::Point3f(-119.0f,-85.0f,0));
-	marker3dPt.push_back(cv::Point3f(+119.0f,-85.0f,0));
-	marker3dPt.push_back(cv::Point3f(+119.0f,+85.0f,0));
-	marker3dPt.push_back(cv::Point3f(-119.0f,+85.0f,0));
+	//marker3dPt.push_back(cv::Point3f(-119.0f,-85.0f,0));
+	//marker3dPt.push_back(cv::Point3f(+119.0f,-85.0f,0));
+	//marker3dPt.push_back(cv::Point3f(+119.0f,+85.0f,0));
+	//marker3dPt.push_back(cv::Point3f(-119.0f,+85.0f,0));
+
+        //marker3dPt.push_back(cv::Point3f(-116.66f,-60.025f,0));
+        //marker3dPt.push_back(cv::Point3f(+116.66f,-60.025f,0));
+        //marker3dPt.push_back(cv::Point3f(+116.66f,+60.025f,0));
+        //marker3dPt.push_back(cv::Point3f(-116.66f,+60.025f,0));
+
+	marker3dPt.push_back(cv::Point3f(-84.0f,-38.0f,0));
+        marker3dPt.push_back(cv::Point3f(+84.0f,-38.0f,0));
+        marker3dPt.push_back(cv::Point3f(+84.0f,+38.0f,0));
+        marker3dPt.push_back(cv::Point3f(-84.0f,+38.0f,0));
+	//marker3dPt.push_back(cv::Point3f(-123.50f,-57.00f,0));
+        //marker3dPt.push_back(cv::Point3f(+123.50f,-57.00f,0));
+        //marker3dPt.push_back(cv::Point3f(+123.50f,+57.00f,0));
+        //marker3dPt.push_back(cv::Point3f(-123.50f,+57.00f,0));
 
 	// 检测黑色透视映射时用
 	markCorners2d.push_back(Point2f(0, 0));
@@ -38,9 +58,10 @@ IrobotDetector::~IrobotDetector()
 
 void IrobotDetector::findImageContours()
 {
-	imC=imread(IMAGE_PATH);
+	imC = imread(IMAGE_PATH);
 	Mat imC2;
 	cvtColor( imC, imC2, CV_BGR2GRAY );
+	
 	threshold(imC2,imCbw,255,255,CV_THRESH_OTSU|CV_THRESH_BINARY);
 	findContours(imCbw,contoursO,hierarchyO,RETR_TREE, CHAIN_APPROX_SIMPLE);
 	//findContours(imbw.clone(), contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
@@ -140,10 +161,9 @@ void IrobotDetector::findIrobot()
 
 #if(DEBUG_ON)
 
-	//imshow("match",imC);
-	//imshow("contour",imcontour);
-	//imshow("bw",imbw);
-	//imshow("canny",imEdge);
+	imshow("match",imC);
+	imshow("bw",imbw);
+	imshow("canny",imEdge);
 	imshow("contour",imcontour);
 	waitKey(1);
 
@@ -156,9 +176,11 @@ void IrobotDetector::ContourBasedDetector()
 	matchMax=100;
 	goodContour=-1;
 	matchN=10;
-	blur( imgray, imgray, Size(3,3) );
+	//blur( imgray, imgray, Size(3,3) );
 	Canny(imgray,imEdge,0,100,3);
-	threshold(imgray,imbw,255,255,CV_THRESH_OTSU|CV_THRESH_BINARY);
+	//threshold(imgray,imbw,255,255,CV_THRESH_OTSU|CV_THRESH_BINARY);
+	threshold(imgray,imbw,BINTHRESHOLD,255,CV_THRESH_BINARY);
+	//adaptiveThreshold ( imgray,imbw,255,ADAPTIVE_THRESH_MEAN_C,THRESH_BINARY_INV,7,7 );
 	findContours(imEdge.clone(), contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
 	for(int i=0;i<contours.size();i++)
@@ -180,13 +202,13 @@ void IrobotDetector::ContourBasedDetector()
 		// find the max 
 		float maxDist = 0;
 		int markerOrigin;
-		for (int i=0; i<8; i++)
+		for (int i0=0; i0<8; i0++)
 		{
-			Point vecTemp = approx[i] - approx[(i+1)%8];
+			Point vecTemp = approx[i0] - approx[(i0+1)%8];
 			float distSquared = vecTemp.dot(vecTemp);
 			if(distSquared>maxDist)
 			{
-				markerOrigin=i;
+				markerOrigin=i0;
 				maxDist=distSquared;
 			}
 		}
@@ -266,36 +288,41 @@ void IrobotDetector::BinBasedDetector()
 			
 		//area detect
 		if(contourArea(contours[i])<(2000/SCALE/SCALE)||contourArea(contours[i])>(120000/SCALE/SCALE)) continue;
-		//drawContours(imcontour,contours,i,Scalar(255,0,0),2);
+		
 		//approx ploy
 		vector<cv::Point> approx;
 		approxPolyDP(contours[i],approx,arcLength(contours[i],true)*0.02,true);
 		if(approx.size()!=8) continue;
 		//cout<<"8 points pass"<<endl;
-
+		
+		
 		// Convex?
 		if (isContourConvex(approx)) continue;
 		//cout<<"!isContourConvex pass"<<endl;
 
+		
+
 		// find the max 
 		float maxDist = 0;
 		int markerOrigin;
-		for (int i=0; i<8; i++)
+		for (int i0=0; i0<8; i0++)
 		{
-			Point vecTemp = approx[i] - approx[(i+1)%8];
+			Point vecTemp = approx[i0] - approx[(i0+1)%8];
 			float distSquared = vecTemp.dot(vecTemp);
 			if(distSquared>maxDist)
 			{
-				markerOrigin=i;
+				markerOrigin=i0;
 				maxDist=distSquared;
 			}
 		}
 		//maxDist
-		if(maxDist<(3000/SCALE))continue;
+		if(maxDist<(1000/SCALE))continue;
 			
 		//cout<<"maxDist pass"<<endl;
 		//right order of point
 		rotate(approx.begin(), approx.begin() + markerOrigin, approx.end());
+
+
 		/*
 		for(int j=0;j<approx.size();j++)
 		{
@@ -311,7 +338,6 @@ void IrobotDetector::BinBasedDetector()
 		//cout<<"cos: "<<cos<<endl;
 		//if(cos>0.5||cos<-0.7) continue;
 
-
 		//perspectiveTransform
 		Mat canonicalImg;
 		vector <Point2f> makerDetect;
@@ -321,12 +347,18 @@ void IrobotDetector::BinBasedDetector()
 		makerDetect.push_back(approx[0]);
 		Mat M = getPerspectiveTransform(makerDetect, markCorners2d);
 		warpPerspective(imbw, canonicalImg, M, m_markerSize);
-
-		int numNoZero = countNonZero(canonicalImg);
+		Rect box(20,10,160,80);
+		Mat boximage;
+		boximage = canonicalImg(box);
+		int numNoZero = countNonZero(boximage);
 		//cout<<"numNoZero:"<<numNoZero<<endl;
-		//imshow("canonicalImg", canonicalImg);
-		if(numNoZero>1300)continue;
+#if(DEBUG_ON)
+		imshow("canonicalImg", boximage);
+		drawContours(imcontour,contours,i,Scalar(255,0,0),2);
+#endif
+		if(numNoZero>3000)continue;
 
+		
 		//Hue match
 		
 		matchN=matchShapes(contours[i],matchContour,CV_CONTOURS_MATCH_I1,0);
@@ -351,6 +383,14 @@ void IrobotDetector::BinBasedDetector()
 				goodKeyPt.push_back(approx[4]);
 				goodKeyPt.push_back(approx[3]);
 				goodKeyPt.push_back(approx[2]);
+				
+				Point v1 = goodKeyPt[1] -goodKeyPt[0];
+				Point v2 = goodKeyPt[2] -goodKeyPt[0];
+				float theta = v1.x * v2.y - v1.y * v2.x;
+				if (theta < 0.0)
+				{
+					for(int ii = 0 ; ii < 8 ; ii++)goodKeyPt[ii] = approx[ii];
+				}
 
 		}
 	}

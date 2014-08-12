@@ -5,7 +5,10 @@ PID::PID(float _Kp, float _Ki, float _Kd, float _integralMin, float _integralMax
     Kp = _Kp;
     Ki = _Ki; 
     Kd = _Kd;
+
+    alpha = 0.5;
     error = 0.0;
+    error_derivative = old_error_derivative = 0;
     setPoint = 0.0;
 
     //TODO: change old error to be a buffer (length 8)
@@ -40,13 +43,18 @@ float PID::update(const float currentPoint, const float dt, float *d_error, floa
     //    error_derivative = errorBuffer[0] - errorBuffer[1];
     //else
     //{
-        //error_derivative = errorBuffer[0] + errorBuffer[1] - errorBuffer[2] - errorBuffer[3];
+        error_derivative = errorBuffer[0] + errorBuffer[1] - errorBuffer[2] - errorBuffer[3];
         //error_derivative = errorBuffer[0] - errorBuffer[2];
-        error_derivative = errorBuffer[0] + errorBuffer[1] + errorBuffer[2] + errorBuffer[3]
-                         - errorBuffer[4] - errorBuffer[5] - errorBuffer[6] - errorBuffer[7];
-        error_derivative /= 16.0f;
+        //error_derivative = errorBuffer[0] + errorBuffer[1] + errorBuffer[2] + errorBuffer[3]
+        //                 - errorBuffer[4] - errorBuffer[5] - errorBuffer[6] - errorBuffer[7];
+        //error_derivative /= 16.0f;
+        error_derivative /= 4.0f;
     //}
-    DVal = error_derivative / dt * Kd;
+    DVal = (1.0f-alpha)*error_derivative + alpha*old_error_derivative;
+    old_error_derivative = DVal;
+
+    DVal = DVal / dt * Kd;
+
     integral += error * dt;
     if (integral > integralMax)
         integral = integralMax;
@@ -79,4 +87,10 @@ void PID::reset()
     bufferCount = 0;
     for (int i=0;i<8;i++)
        errorBuffer[i] = 0; 
+    error_derivative = old_error_derivative = 0;
+}
+
+void PID::reduceIntegral(float coeffi)
+{
+	integral *= coeffi;
 }

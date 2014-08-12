@@ -124,7 +124,7 @@ void take_quat_conjugate(vector4f q)
   * @param[in]		q: input quaternion
   * @retval			None 
   * @remark			benchmarked by: Yu Yun
-  *					the code is resilient to zero input
+  *					 + the code is resilient to zero input
   */
 void quat_normalize(vector4f q)
 {
@@ -195,11 +195,32 @@ void get_error_quat(vector4f q_err, const vector4f q_cur, const vector4f q_tgt)
 
 	get_quat_conjugate(q_conju, q_cur);
 
-	quat_multi(q_err, q_conju, q_tgt);
+	unit_quat_multi(q_err, q_conju, q_tgt);
 
 }
 
+void quat_rot_vector(vector3f v_out, const vector3f v_in, const vector4f q)
+{
+	vector4f q_conju;
+	vector4f V_IN;
+	vector4f V_OUT;
+	vector4f v_temp;
 
+	V_IN[0] = 0.0f;
+	V_IN[1] = v_in[0];
+	V_IN[2] = v_in[1];
+	V_IN[3] = v_in[2];
+
+	get_quat_conjugate(q_conju, q);
+
+	quat_multi(v_temp, q, V_IN);
+	quat_multi(V_OUT, v_temp, q_conju);
+
+	v_out[0] = V_OUT[1];
+	v_out[1] = V_OUT[2];
+	v_out[2] = V_OUT[3];
+
+}
 
 
 

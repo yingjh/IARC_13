@@ -4,17 +4,11 @@
 #include <signal.h>
 #include "ros/ros.h"
 #include "tf/transform_broadcaster.h"
+#include "std_msgs/Float32.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "geometry_msgs/Quaternion.h"
 #include "geometry_msgs/Vector3.h"
 #include "serial_to_uav/UAV.h"
-
-//Yu Yun library
-#include "math_basic.h"
-#include "math_vector.h"
-#include "math_matrix.h"
-#include "math_quaternion.h"
-#include "math_rotation.h"
 
 using namespace std;
 using namespace LibSerial ;
@@ -23,7 +17,8 @@ SerialStream serial_port ;
 bool got_pose;
 char next_byte1 = 'k', next_byte2 = 'k';
 float out;
-const int BUF_LEN = 44;     //11*4 -  q0 q1 q2 q3, a1, a2, a3, w1, w2, w3, h
+const int NUM_BUF = 15;
+const int BUF_LEN = 60;     //14*4 -  q0 q1 q2 q3, v1, v2, v3, a1, a2, a3, w1, w2, w3, h
 const int OUT_LEN = BUF_LEN/4;
 char float_array[BUF_LEN]; 
 float out_array[OUT_LEN];
@@ -34,6 +29,7 @@ bool is_write_on;
 // is_write_on uav_ctrl info to serial port
 int16_t yaw_rate = 1,pitch = 2,roll = 3;
 int16_t vel = 4;
+static int16_t status = 3;	// if we have control data, then assume the uav is in status FLIGHT_STATUS_INAIR
 
 // read serial FSM
 enum {
@@ -52,6 +48,9 @@ int float_counter = 0;
 ros::Subscriber sub;
 ros::Publisher pub;
 
+ros::Subscriber status_sub;
+ros::Publisher status_pub;
+
 void serial_interrupt(int sig){ // can be called asynchronously
 	if (serial_port.IsOpen())
 		serial_port.Close();
@@ -64,13 +63,12 @@ void get_uav_ctrl(const geometry_msgs::Quaternion::ConstPtr& msg)
 	int8_t tmpPitch[2]; 
 	int8_t tmpRoll[2]; 
 	int8_t tmpVel[2]; 
+	int8_t tmpStatus[2];
 	yaw_rate = (int16_t)msg->z;
 	pitch = (int16_t)msg->x;
 	roll = (int16_t)msg->y;
 	vel = (int16_t)msg->w;	
-
-    // this is an ugly solution to compensate IMU roll bias
-    roll += 200;
+	status = 3;
 
 	tmpYaw[1] = (int8_t)yaw_rate;
 	tmpYaw[0] = (int8_t)(yaw_rate>>8);
@@ -80,22 +78,55 @@ void get_uav_ctrl(const geometry_msgs::Quaternion::ConstPtr& msg)
 	tmpRoll[0] = (int8_t)(roll>>8);
 	tmpVel[1] = (int8_t)vel;
 	tmpVel[0] = (int8_t)(vel>>8);
-	printf("yaw %i pitch %i roll %i\n", yaw_rate, pitch, roll-200);
+	tmpStatus[1] = (int8_t)status;
+	tmpStatus[0] = (int8_t)(status>>8);
+	//printf("yaw %i pitch %i roll %i\n", yaw_rate, pitch, roll);
 
 	serial_port << "AA" 
 				<< tmpYaw[0] << tmpYaw[1] 
 				<< tmpPitch[0] << tmpPitch[1] 
 				<< tmpRoll[0] << tmpRoll[1] 
 				<< tmpVel[0] << tmpVel[1] 
-				<<"BB";
+				<< tmpStatus[0] << tmpStatus[1] 
+				;
 } 
+
+void request_status(const std_msgs::Float32::ConstPtr& msg)
+{
+	int8_t tmpYaw[2]; 
+	int8_t tmpPitch[2]; 
+	int8_t tmpRoll[2]; 
+	int8_t tmpVel[2]; 
+	int8_t tmpStatus[2];
+	status = (int16_t)msg->data;
+
+	tmpYaw[1] = (int8_t)yaw_rate;
+	tmpYaw[0] = (int8_t)(yaw_rate>>8);
+	tmpPitch[1] = (int8_t)pitch;
+	tmpPitch[0] = (int8_t)(pitch>>8);
+	tmpRoll[1] = (int8_t)roll;
+	tmpRoll[0] = (int8_t)(roll>>8);
+	tmpVel[1] = (int8_t)vel;
+	tmpVel[0] = (int8_t)(vel>>8);
+	tmpStatus[1] = (int8_t)status;
+	tmpStatus[0] = (int8_t)(status>>8);
+	//printf("sent request %i\n", status);
+
+	serial_port << "AA" 
+				<< tmpYaw[0] << tmpYaw[1] 
+				<< tmpPitch[0] << tmpPitch[1] 
+				<< tmpRoll[0] << tmpRoll[1] 
+				<< tmpVel[0] << tmpVel[1] 
+				<< tmpStatus[0] << tmpStatus[1] 
+				;
+}
+
 
 //void get_pose(const geometry_msgs::PoseStamped::ConstPtr& msg)
 void get_pose()
 {
 	// generate a debug output, added on 04-11-2014
 	float yaw, pitch, roll;
-	vector4f q_debug;
     static tf::TransformBroadcaster br;
     tf::Transform tran;
 	//x = msg->pose.position.x;
@@ -108,6 +139,7 @@ void get_pose()
 	//}
     //ROS_INFO("Ready to get IMU data");
 	serial_to_uav::UAV msg;
+	std_msgs::Float32 status_msg;
 	while( serial_port.rdbuf()->in_avail() > 0  ) 
 	{
 		// if rdbuf is not empty, reset connection_loss_count
@@ -152,15 +184,15 @@ void get_pose()
                         buffer_counter++;
                         if (buffer_counter == OUT_LEN)
                         {
-                            cout << "have read " << read_counter << " chars"<<endl;
+                            //cout << "have read " << read_counter << " chars"<<endl;
                             for (int i=0; i< OUT_LEN;i++)
                             {
                                 memcpy(&out,float_array+4*i,4);
-                                printf("%4.3f\t",out);
+                                //printf("%4.3f\t",out);
                                 out_array[i] = out;
                             }
 
-                            printf("\n");
+                            //printf("\n");
                             for (int k = 0; k < 4; k++)
                             {
                                 if ((out_array[k] != out_array[k]) || 
@@ -173,7 +205,7 @@ void get_pose()
                                     out_array[3] = 0; 
                                 }
                             }
-                            for (int k = 4; k < 11; k++)
+                            for (int k = 4; k < NUM_BUF; k++)
                             {
                                 if ((out_array[k] != out_array[k]) || 
                                     (out_array[k] >  999999) ||
@@ -187,21 +219,16 @@ void get_pose()
                             msg.orientation.x = out_array[1];
                             msg.orientation.y = out_array[2];
                             msg.orientation.z = out_array[3];
-                            q_debug[0] = out_array[0];
-                            q_debug[1] = out_array[1];
-                            q_debug[2] = out_array[2];
-                            q_debug[3] = out_array[3];
-                            quat_to_eular(&yaw, &pitch, &roll, q_debug);
-                            msg.debug.x = yaw;
-                            msg.debug.y = pitch;
-                            msg.debug.z = roll;
-                            msg.linear_a.x = out_array[4] * 100;
-                            msg.linear_a.y = out_array[5] * 100;
-                            msg.linear_a.z = out_array[6] * 100;
-                            msg.angular_v.x = out_array[7];
-                            msg.angular_v.y = out_array[8];
-                            msg.angular_v.z = out_array[9];
-                            msg.height = out_array[10];
+                            msg.linear_v.x = out_array[4] * 100;
+                            msg.linear_v.y = out_array[5] * 100;
+                            msg.linear_v.z = out_array[6] * 100;
+                            msg.linear_a.x = out_array[7] * 100;
+                            msg.linear_a.y = out_array[8] * 100;
+                            msg.linear_a.z = out_array[9] * 100;
+                            msg.angular_v.x = out_array[10];
+                            msg.angular_v.y = out_array[11];
+                            msg.angular_v.z = out_array[12];
+                            msg.height = out_array[13];
                             msg.header.stamp =ros::Time::now();
                             pub.publish(msg);
                             tran.setOrigin( tf::Vector3(0.0, 0.0, 0.0) );
@@ -210,6 +237,11 @@ void get_pose()
                                                        msg.orientation.z,
                                                        msg.orientation.w) );
                             br.sendTransform(tf::StampedTransform(tran, ros::Time::now(), "world","uav_frame"));
+
+							// uav status publisher
+							status_msg.data = out_array[14];
+							status_pub.publish(status_msg);
+
                             read_counter = 0;
                             state = IDLE1;
                         }
@@ -325,14 +357,19 @@ int main (int argc, char** argv)
 	ros::init(argc, argv, "serial_talker");
 	ros::NodeHandle n;
 	//control read only or read & is_write_on
-	n.param<bool>("is_write_on", is_write_on, false);
+	n.param<bool>("is_write_on", is_write_on, true);
 	//sub = n.subscribe("/slam_out_pose", 1, get_pose);
 	pub = n.advertise<serial_to_uav::UAV>("uav_imu",100);
+	status_pub = n.advertise<std_msgs::Float32>("uav_flight_status",10);
 	
 	// if read & is_write_on, listen to uav_control topic
 	if (is_write_on)
+	{
 		sub=n.subscribe("/board_ctrl", 1000, get_uav_ctrl);
 		//sub=n.subscribe("/uav_ctrl", 1000, get_uav_ctrl);
+
+		status_sub = n.subscribe("/uav_flight_status_request", 10, request_status);		
+	}
 	ros::Rate loop_rate(50);
 	while (ros::ok())
 	{

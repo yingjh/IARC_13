@@ -109,6 +109,22 @@ void matrix3f_add(matrix3f m_out, matrix3f a_in,matrix3f b_in)
 	vector3f_add(m_out[2], a_in[2], b_in[2]);
 }
 
+/**
+  * @brief			matrix addition
+  * @author			Yu Yun
+  * @param[out]		m_out: output matrix
+  * @param[in]		a_in: input matrix a
+  * @param[in]		b_in: input matrix b
+  * @retval			None 
+  * @remark			benchmarked by: Yu Yun
+  */
+void matrix3f_add3(matrix3f m_out, matrix3f a_in, matrix3f b_in, matrix3f c_in)
+{
+	vector3f_add3(m_out[0], a_in[0], b_in[0], c_in[0]);
+	vector3f_add3(m_out[1], a_in[1], b_in[1], c_in[1]);	
+	vector3f_add3(m_out[2], a_in[2], b_in[2], c_in[2]);
+}
+
 
 /**
   * @brief			matrix subtraction
@@ -140,6 +156,23 @@ void matrix3f_scale(matrix3f m, float scale)
 	vector3f_scale(m[0], scale);
 	vector3f_scale(m[1], scale);
 	vector3f_scale(m[2], scale);
+}
+
+
+/**
+  * @brief			multiply a matrix with a scaler
+  * @author			Yu Yun
+  * @param[out]		m_out: output matrix
+  * @param[in]		m_in:  input matrix
+  * @param[in]		scale: input scaler
+  * @retval			None 
+  * @remark			benchmarked by: Yu Yun
+  */
+void matrix3f_multi_scaler(matrix3f m_out, matrix3f m_in, float scaler)
+{
+	vector3f_multi_scaler(m_out[0], m_in[0], scaler);
+	vector3f_multi_scaler(m_out[1], m_in[1], scaler);
+	vector3f_multi_scaler(m_out[2], m_in[2], scaler);
 }
 
 

@@ -9,7 +9,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/opencv.hpp>
-//#include "ASICamera.h"
+#include "ASICamera.h"
 #define  MAX_CONTROL 7
 using namespace cv;
 
@@ -156,9 +156,15 @@ int main(int argc, char** argv)
     Mat img(height, width, CV_8UC3);
     Mat s_img(320, 240, CV_8UC3);
     Mat colorImg, grayImg;
+    int startPosX;
     while (nh.ok()) 
     {
         //startTime = clock();
+
+        //startPosX = (startPosX + 1) % 500;
+        //if (startPosX % 10 == 0)
+        //    setStartPos(startPosX, 100);
+        
 
 		getImageData((unsigned char*)img.data, width*height*3, -1);
 

@@ -43,6 +43,9 @@ void vector2f_add(vector2f v_out, vector2f a_in,vector2f b_in);
 void vector3f_add(vector3f v_out, vector3f a_in,vector3f b_in);
 void vector4f_add(vector4f v_out, vector4f a_in,vector4f b_in);
 
+void vector3f_add3(vector3f v_out, vector3f a_in, vector3f b_in, vector3f c_in);
+
+
 void vector2f_sub(vector2f v_out, vector2f a_in,vector2f b_in);
 void vector3f_sub(vector3f v_out, vector3f a_in,vector3f b_in);
 void vector4f_sub(vector4f v_out, vector4f a_in,vector4f b_in);
@@ -50,6 +53,11 @@ void vector4f_sub(vector4f v_out, vector4f a_in,vector4f b_in);
 void vector2f_scale(vector2f v, float scale);
 void vector3f_scale(vector3f v, float scale);
 void vector4f_scale(vector4f v, float scale);
+
+void vector2f_multi_scaler(vector2f v_out, const vector2f v_in, const float scaler);
+void vector3f_multi_scaler(vector3f v_out, const vector3f v_in, const float scaler);
+void vector4f_multi_scaler(vector4f v_out, const vector4f v_in, const float scaler);
+
 
 float vector2f_norm(const vector2f v);
 float vector3f_norm(const vector3f x);
@@ -76,8 +84,8 @@ float cosine_between_vector3f(const vector3f a,const vector3f b);
 float sine_between_vector2f(const vector2f a, const vector2f b);
 float sine_between_vector3f(const vector3f a, const vector3f b);
 
-float angle_between_vector2f(const vector2f a, const vector2f b);     //rad
-float angle_between_vector3f(const vector3f a, const vector3f b);     //rad
+float angle_between_vector2f(const vector2f a, const vector2f b);
+float angle_between_vector3f(const vector3f a, const vector3f b);
 
 
 

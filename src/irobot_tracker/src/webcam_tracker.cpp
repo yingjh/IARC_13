@@ -20,7 +20,7 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "geometry_msgs/Quaternion.h"
 #include "irobot_tracker/trackInfo.h"
-#include "irobot_tracker/uav_math.h"
+//#include "irobot_tracker/uav_math.h"
 #include "geometry_msgs/Vector3.h"
 #include <opencv2/opencv.hpp>
 // my class
@@ -72,6 +72,8 @@ int main(int argc,char **argv)
 	ros::init(argc, argv, "webcam_identifier");
 	ros::NodeHandle nh;
 
+	
+	cout<< "here 1"<<endl;
 	image_transport::ImageTransport it(nh);
 	image_transport::Subscriber imgSub;
 

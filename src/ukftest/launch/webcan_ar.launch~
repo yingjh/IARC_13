@@ -1,0 +1,15 @@
+<launch>
+	<param name="is_debug_on" value="false" />
+
+	<node name="WebCam" pkg="read_web_cam" type="read_web_cam"/>
+
+	<node name="aruco_tracker" pkg="irobot_tracker" type="aruco_tracker"/>
+
+	<node name="ukftest" pkg="ukftest" type="SRUKF_controller" output="screen"/>
+
+	<node name="serial_to_uav_node" pkg="serial_to_uav" type="serial_to_uav_node"/>
+	<param name="is_write_on" value="true" />
+    <!--
+    -->
+	
+</launch>

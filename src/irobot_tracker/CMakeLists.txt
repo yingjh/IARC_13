@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(irobot_tracker) 
+project(irobot_tracker)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "/usr/local/lib/cmake/")
 find_package(aruco REQUIRED )
@@ -7,7 +7,7 @@ find_package(aruco REQUIRED )
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS message_filters geometry_msgs roscpp std_msgs cv_bridge image_transport tf message_generation visualization_msgs)
+find_package(catkin REQUIRED COMPONENTS message_filters geometry_msgs roscpp std_msgs cv_bridge image_transport tf message_generation)
 
 ## System dependencies are found with CMake's conventions
 set(Boost_USE_STATIC_LIBS ON)
@@ -17,7 +17,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 find_package( OpenCV REQUIRED )
 
 set(EIGEN_NO_DEBUG OFF)
-##find_package( Eigen3 REQUIRED )
+find_package( Eigen3 REQUIRED )
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 ## find Yu Yun math library
@@ -40,6 +40,7 @@ add_message_files(
   FILES
   trackInfo.msg
   trackerDebug.msg
+#   Message2.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -53,6 +54,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   geometry_msgs
+    #std_msgs
 )
 
 ###################################
@@ -67,8 +69,8 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES pid SRUKF
-  CATKIN_DEPENDS geometry_msgs roscpp std_msgs tf
-  DEPENDS system_lib
+#  CATKIN_DEPENDS geometry_msgs roscpp std_msgs tf
+#  DEPENDS system_lib
   CATKIN_DEPENDS message_runtime
 )
 
@@ -79,12 +81,8 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-include_directories(include ${catkin_INCLUDE_DIRS})
-include_directories(${OpenCV_INCLUDE_DIR})
-include_directories(include ${catkin_INCLUDE_DIRS})
-link_directories(${OpenCV_LIBRARY_DIR})
-link_libraries(${OpenCV_LIBS})
 
 ## Declare a cpp library
 add_library(pid
@@ -96,12 +94,15 @@ add_library(SRUKF
    ${UAV_MATH_LIB_SOURCES}
 )
 
+add_library(uav_math
+	src/uav_math.cpp
+)
+
 ## Declare a cpp executable
-add_executable(SRUKF_controller src/SRUKF_controller.cpp src/SRUKF.cpp src/pid.cpp ${UAV_MATH_LIB_SOURCES})
-add_executable(aruco_tracker src/aruco_tracker.cpp src/uav_math.cpp)
+add_executable(SRUKF_controller src/SRUKF_controller.cpp ${UAV_MATH_LIB_SOURCES})
+add_executable(aruco_tracker src/aruco_tracker.cpp ${UAV_MATH_LIB_SOURCES})
 add_executable(webcam_tracker src/webcam_tracker.cpp src/IrobotDetector.cpp)
-add_executable(tracker_debug_node src/tracker_debug_plot.cpp src/PlainBase.cpp)
- 
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(irobot_tracker_node irobot_tracker_generate_messages_cpp)
@@ -110,11 +111,10 @@ add_executable(tracker_debug_node src/tracker_debug_plot.cpp src/PlainBase.cpp)
 # target_link_libraries(irobot_tracker_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(SRUKF_controller pid SRUKF ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-target_link_libraries(aruco_tracker ${OpenCV_LIBS} ${aruco_LIBS} ${catkin_LIBRARIES})
-target_link_libraries(webcam_tracker ${catkin_LIBRARIES})
-target_link_libraries(tracker_debug_node ${catkin_LIBRARIES})
-add_dependencies(tracker_debug_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries( SRUKF_controller pid SRUKF ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries( aruco_tracker uav_math SRUKF ${OpenCV_LIBS} ${aruco_LIBS} ${catkin_LIBRARIES}) 
+target_link_libraries( webcam_tracker ${catkin_LIBRARIES})
+
 #############
 ## Install ##
 #############

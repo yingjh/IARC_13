@@ -8,16 +8,20 @@ class PID
         float update(const float currentPoint, const float dt, float *d_error, float *d_pval, float *d_ival, float *d_dval);
         void set_point(float _setPoint);
         void reset();
+		void reduceIntegral(float coeffi);
         void set_Kp(float _Kp) {Kp = _Kp;}
         void set_Ki(float _Ki) {Ki = _Ki;}
         void set_Kd(float _Kd) {Kd = _Kd;}
+        void set_dFilter_gain(float _alpha) {alpha = _alpha;}
         //TODO: add more functions to set Kp,Ki,Kd
 
     private:
         float Kp, Ki, Kd;
+        float alpha;
         float PVal, IVal, DVal;
         float error;
         float error_derivative;
+        float old_error_derivative;  // this is used as exponential filter
         float setPoint;
 
         float errorBuffer[8];
